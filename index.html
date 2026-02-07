@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KN XITER | Painel Administrativo</title>
+    <style>
+        :root {
+            --bg-dark: #0b1120;
+            --sidebar-bg: #1e293b;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #4ade80;
+            --text-gray: #94a3b8;
+            --card-bg: #1e293b;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg-dark); color: white; display: flex; }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 260px; height: 100vh; background: var(--sidebar-bg);
+            position: fixed; left: -260px; transition: 0.3s; z-index: 1000;
+            border-right: 1px solid #334155;
+        }
+        #sidebar.active { left: 0; }
+        .sidebar-header { padding: 25px; font-size: 1.4rem; font-weight: bold; color: var(--accent); border-bottom: 1px solid #334155; text-align: center; }
+        
+        .menu-item { padding: 15px 25px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-gray); transition: 0.2s; border-left: 4px solid transparent; }
+        .menu-item:hover, .menu-item.active { background: #334155; color: white; border-left-color: var(--accent); }
+
+        /* --- CONTEÚDO --- */
+        #main-content { flex-grow: 1; padding: 20px; width: 100%; margin-left: 0; transition: 0.3s; }
+        @media (min-width: 900px) {
+            #sidebar { left: 0; }
+            #main-content { margin-left: 260px; }
+            .menu-toggle { display: none; }
+        }
+
+        .menu-toggle { font-size: 28px; background: none; border: none; color: white; cursor: pointer; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        
+        /* --- INPUTS E BOTÕES --- */
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 15px; }
+        .input-group { flex: 1; min-width: 150px; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
+        input, select { width: 100%; background: #0f172a; border: 1px solid #334155; padding: 12px; border-radius: 8px; color: white; outline: none; box-sizing: border-box; }
+        .btn-primary { background: var(--accent); color: #0b1120; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        /* --- TABELAS E AÇÕES --- */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; color: var(--text-gray); font-size: 12px; border-bottom: 1px solid #334155; }
+        td { padding: 12px 15px; border-bottom: 1px solid #334155; font-size: 14px; }
+        
+        .action-stack { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+        .btn-sm { border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-del { background: var(--danger); }
+        .btn-res { background: #3b82f6; }
+        .btn-pau { background: var(--warning); }
+        .btn-copy { background: #6366f1; width: 100%; height: 26px; font-size: 10px; margin-top: 5px; font-weight: bold; }
+
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .status-active { background: rgba(74, 222, 128, 0.1); color: var(--success); }
+        .status-banned { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <nav id="sidebar">
+        <div class="sidebar-header">KN XITER</div>
+        <div class="menu-item active" onclick="navegar('keys')">🔑 Gerenciar Keys</div>
+        <div class="menu-item" onclick="navegar('resellers')">👥 Revendedores</div>
+        <div class="menu-item" onclick="navegar('logins')">👤 Gerenciar Logins</div>
+    </nav>
+
+    <div id="main-content">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+
+        <div id="keys" class="page active">
+            <h2>Gerenciamento de Keys</h2>
+            <div class="card">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Validade</label>
+                        <select id="key-days">
+                            <option value="1">1 Dia</option>
+                            <option value="7">7 Dias</option>
+                            <option value="30">30 Dias</option>
+                            <option value="9999">PERMANENTE</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="gerarKey()">GERAR KEY</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>KEY</th><th>VALIDADE</th><th>STATUS</th><th style="text-align:center;">AÇÕES</th></tr>
+                    </thead>
+                    <tbody id="tabela-keys"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="resellers" class="page">
+            <h2>Gestão de Revendedores</h2>
+            <div class="card">
+                <div class="form-row">
+                    <div class="input-group"><label>Nome</label><input type="text" id="res-name" placeholder="Nome do revendedor"></div>
+                    <div class="input-group"><label>Créditos</label><input type="number" id="res-credits" placeholder="0"></div>
+                    <button class="btn-primary" onclick="addReseller()">ADICIONAR</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>NOME</th><th>CRÉDITOS</th><th>STATUS</th><th style="text-align:center;">AÇÕES</th></tr>
+                    </thead>
+                    <tbody id="tabela-resellers"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="logins" class="page"><h2>Logins</h2><p>Área de monitoramento de HWID.</p></div>
+    </div>
+
+    <script>
+        let keysDB = JSON.parse(localStorage.getItem('kn_keys')) || [];
+        let resDB = JSON.parse(localStorage.getItem('kn_res')) || [];
+
+        function toggleMenu() { document.getElementById('sidebar').classList.toggle('active'); }
+
+        function navegar(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if(window.innerWidth < 900) toggleMenu();
+        }
+
+        // --- FUNÇÕES DE KEYS ---
+        function gerarKey() {
+            const days = document.getElementById('key-days').value;
+            const code = "KN-" + Math.random().toString(36).substring(2, 7).toUpperCase() + "-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+            keysDB.push({ id: Date.now(), code: code, days: days == 9999 ? 'PERM' : days + 'D', status: 'Ativa' });
+            renderKeys();
+        }
+
+        function renderKeys() {
+            localStorage.setItem('kn_keys', JSON.stringify(keysDB));
+            const body = document.getElementById('tabela-keys');
+            body.innerHTML = keysDB.map(k => `
+                <tr>
+                    <td>
+                        <span style="color:var(--accent); font-family:monospace;">${k.code}</span>
+                        <button class="btn-copy" onclick="navigator.clipboard.writeText('${k.code}'); alert('Copiado!')">COPIAR</button>
+                    </td>
+                    <td>${k.days}</td>
+                    <td><span class="status-badge status-active">${k.status}</span></td>
+                    <td>
+                        <div class="action-stack">
+                            <button class="btn-sm btn-del" onclick="keysDB = keysDB.filter(x=>x.id!==${k.id}); renderKeys()">🗑</button>
+                            <button class="btn-sm btn-res" onclick="k.code='KN-'+Math.random().toString(36).substring(2,7).toUpperCase(); renderKeys()">🔄</button>
+                            <button class="btn-sm btn-pau" onclick="k.status=k.status==='Ativa'?'Pausada':'Ativa'; renderKeys()">⏸</button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        // --- FUNÇÕES DE REVENDEDORES ---
+        function addReseller() {
+            const n = document.getElementById('res-name').value;
+            const c = document.getElementById('res-credits').value;
+            if(!n || !c) return;
+            resDB.push({ id: Date.now(), name: n, credits: c, status: 'Ativo' });
+            renderRes();
+        }
+
+        function renderRes() {
+            localStorage.setItem('kn_res', JSON.stringify(resDB));
+            const body = document.getElementById('tabela-resellers');
+            body.innerHTML = resDB.map(r => `
+                <tr>
+                    <td style="font-weight:bold">${r.name}</td>
+                    <td style="color:var(--accent)">${r.credits}</td>
+                    <td><span class="status-badge status-${r.status === 'Ativo' ? 'active' : 'banned'}">${r.status}</span></td>
+                    <td>
+                        <div class="action-stack">
+                            <button class="btn-sm btn-del" onclick="resDB=resDB.filter(x=>x.id!==${r.id}); renderRes()">🗑</button>
+                            <button class="btn-sm btn-pau" style="background:var(--danger)" onclick="r.status=r.status==='Ativo'?'Banido':'Ativo'; renderRes()">🚫</button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        renderKeys();
+        renderRes();
+    </script>
+</body>
+</html>
